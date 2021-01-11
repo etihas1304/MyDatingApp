@@ -12,6 +12,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using DatingApp.Data;
+using DatingApp.Interfaces;
+using DatingApp.Services;
+using DatingApp.Extensions;
 
 namespace DatingApp
 {
@@ -27,12 +30,12 @@ namespace DatingApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddAplicationServices(Configuration);
             services.AddControllers();
-            services.AddDbContext<DataContext>(options =>
-            {
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
-            });
             services.AddCors();
+            services.AddIdentityServices(Configuration);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -48,6 +51,8 @@ namespace DatingApp
             app.UseRouting();
 
             app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200"));
+            
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
