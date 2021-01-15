@@ -15,6 +15,7 @@ using DatingApp.Data;
 using DatingApp.Interfaces;
 using DatingApp.Services;
 using DatingApp.Extensions;
+using DatingApp.Middleware;
 
 namespace DatingApp
 {
@@ -41,11 +42,11 @@ namespace DatingApp
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
+            //if (env.IsDevelopment())
+            //{
+            //    app.UseDeveloperExceptionPage();
+            //}
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseHttpsRedirection();
 
             app.UseRouting();
