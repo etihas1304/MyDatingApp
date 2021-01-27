@@ -20,8 +20,7 @@ namespace DatingApp.Helpers
             CreateMap<Photo, PhotoDto>();
             CreateMap<MemberUpdateDto, AppUser>()/*.ForMember(dest=>dest.Introductin,opt=>opt.MapFrom(src=>src.Introduction))*/;
             CreateMap<RegisterDto, AppUser>().ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => src.DateOfBirth));
-
-
+            
         }
     }
 }
