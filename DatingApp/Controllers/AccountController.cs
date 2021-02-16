@@ -10,6 +10,7 @@ using DatingApp.Dtos;
 using DatingApp.Entities;
 using DatingApp.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,16 +19,16 @@ namespace DatingApp.Controllers
    
     public class AccountController : MyBaseController
     {
-        private readonly DataContext _context;
         private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
-
-
-        public AccountController(DataContext context,ITokenService token,IMapper mapper)
+        private readonly UserManager<AppUser> _userManager;
+        private readonly SignInManager<AppUser> _signInManager;
+        public AccountController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, ITokenService tokenService, IMapper mapper)
         {
-            _context = context;
-            _tokenService = token;
+            _signInManager = signInManager;
+            _userManager = userManager;
             _mapper = mapper;
+            _tokenService = tokenService;
         }
 
 
@@ -38,13 +39,11 @@ namespace DatingApp.Controllers
                 return BadRequest("UserName is already taken");
             var user = _mapper.Map<AppUser>(registerDto);
 
-            using var hmac = new HMACSHA512();
             user.UserName = registerDto.UserName;
-            user.PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(registerDto.Password));
-            user.PasswordSalt = hmac.Key;
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+
+            if (!result.Succeeded) return BadRequest(result.Errors);
             return new UserDto
             {
                 UserName = user.UserName,
@@ -55,20 +54,17 @@ namespace DatingApp.Controllers
         }
         private async Task<bool> IsUserNameExist(string userName)
         {
-            return await _context.Users.AnyAsync(x => x.UserName == userName);
+            return await _userManager.Users.AnyAsync(x => x.UserName == userName);
         }
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
-            var user = await _context.Users.Include(p=>p.Photos).FirstOrDefaultAsync(x => x.UserName == loginDto.UserName);
+            var user = await _userManager.Users.Include(p=>p.Photos).FirstOrDefaultAsync(x => x.UserName == loginDto.UserName);
             if (user == null)
                 return Unauthorized("Invalid username");
-            using var hmac = new HMACSHA512(user.PasswordSalt);
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
-            for (int i = 0; i < computedHash.Length; i++)
-            {
-                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid Password");
-            }
+            var result = await _signInManager
+                 .CheckPasswordSignInAsync(user, loginDto.Password, false);
+            if (!result.Succeeded) return Unauthorized();
             return new UserDto
             {
                 UserName = user.UserName,
